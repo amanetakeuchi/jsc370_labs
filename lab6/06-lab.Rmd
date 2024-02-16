@@ -1,6 +1,9 @@
 ---
 title: "Lab 06 - Regular Expressions and Web Scraping"
-output: html_document
+output: 
+  github_document: default
+  tufte::tufte_html:
+link-citations: yes
 ---
 
 ```{r setup, echo=FALSE}
@@ -34,21 +37,21 @@ Complete the lines of code:
 
 ```{r counter-pubmed, eval=FALSE}
 # Downloading the website
-website <- xml2::read_html("[URL]")
+website <- xml2::read_html("https://pubmed.ncbi.nlm.nih.gov/?term=sars-cov-2")
 
 # Finding the counts
-counts <- xml2::xml_find_first(website, "[XPath]")
+counts <- xml2::xml_find_first(website, "/html/body/div[2]/div/div[3]/main/div[3]/div[3]/div[1]/div[2]/div[5]/table")
 
 # Turning it into text
 counts <- as.character(counts)
 
 # Extracting the data using regex
-stringr::str_extract(counts, "[REGEX FOR NUMBERS WITH COMMAS/DOTS]")
+stringr::str_extract(counts, "[\\d,]+")
 ```
 
  - How many sars-cov-2 papers are there?
 
-_Answer here._
+There are 218,845 papers
 
 Don't forget to commit your work!
 
@@ -69,8 +72,8 @@ The parameters passed to the query are documented [here](https://www.ncbi.nlm.ni
 ```{r papers-covid-toronto, eval=FALSE}
 library(httr)
 query_ids <- GET(
-  url   = "BASELINE URL",
-  query = list("QUERY PARAMETERS")
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+  query = list(db="pubmed", term="covid19 toronto", retmax=300)
 )
 
 # Extracting the content of the response of GET
@@ -83,6 +86,9 @@ data could be using lists with the function `xml2::as_list()`. We will skip the 
 
 Take a look at the data, and continue with the next question (don't forget to 
 commit and push your results to your GitHub repo!).
+```{r}
+ids
+```
 
 ## Question 3: Get details about the articles
 
@@ -95,10 +101,10 @@ following lines of code:
 ids <- as.character(ids)
 
 # Find all the ids 
-ids <- stringr::str_extract_all(ids, "PATTERN")[[1]]
+ids <- stringr::str_extract_all(ids, "<Id>\\d+</Id>")[[1]]
 
 # Remove all the leading and trailing <Id> </Id>. Make use of "|"
-ids <- stringr::str_remove_all(ids, "PATTERN")
+ids <- stringr::str_remove_all(ids, "<Id>|</Id>")
 ```
 
 With the ids in hand, we can now try to get the abstracts of the papers. As
@@ -116,9 +122,8 @@ before, we will need to coerce the contents (results) to a list using:
     
 ```{r get-abstracts, eval = FALSE}
 publications <- GET(
-  url   = "BASELINE URL HERE",
-  query = list(
-    "PARAMETERS OF THE QUERY"
+  url   = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+  query = list(db="pubmed", rettype="abstract", retmax=300, id=I(paste(ids, collapse = ","))
     )
 )
 
